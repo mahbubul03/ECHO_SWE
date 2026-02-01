@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - ECHO-Occupancy Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Room Dashboard</h2>
+    {% if is_manager %}
+        <p class="subtitle">Viewing all 40 rooms</p>
+    {% else %}
+        <p class="subtitle">Your reserved room</p>
+    {% endif %}
+</div>
+
+{% if rooms_data %}
+    <div class="rooms-grid">
+        {% for room_data in rooms_data %}
+            <div class="room-card room-{{ room_data.color }}" 
+                 onclick="window.location.href='{% url 'rooms:room_detail' room_data.room.room_number %}'">
+                <div class="room-number">{{ room_data.room.room_number }}</div>
+                <div class="room-status">
+                    {% if room_data.reservation %}
+                        {% if room_data.reservation.user == user %}
+                            <span class="badge badge-green">Your Room</span>
+                        {% else %}
+                            <span class="badge badge-yellow">Reserved</span>
+                        {% endif %}
+                    {% elif room_data.status.is_occupied %}
+                        <span class="badge badge-yellow">Occupied</span>
+                    {% else %}
+                        <span class="badge badge-white">Available</span>
+                    {% endif %}
+                </div>
+                {% if room_data.room.has_iot_device and room_data.room.room_number != "101" %}
+                    <div class="room-iot">
+                        <span class="iot-badge">IoT Device</span>
+                        {% if room_data.status.occupancy_data %}
+                            <span class="realtime-indicator">●</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                {% if room_data.reservation %}
+                    <div class="room-user">
+                        Reserved by: {{ room_data.reservation.user.username }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <p>Please make a reservation first.</p>
+        <a href="{% url 'reservations:reservation_page' %}" class="btn btn-primary">Make Reservation</a>
+    </div>
+{% endif %}
+
+{% if not is_manager %}
+<div class="dashboard-actions">
+    <a href="{% url 'reservations:reservation_page' %}" class="btn btn-secondary">View Reservations</a>
+</div>
+{% endif %}
+{% endblock %}
+

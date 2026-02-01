@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservations - ECHO-Occupancy Monitor{% endblock %}
+
+{% block content %}
+{% if is_manager %}
+    <div class="empty-state">
+        <h2>Reservation System</h2>
+        <p>Managers cannot reserve rooms. This feature is only available for normal users.</p>
+        <a href="{% url 'rooms:dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+    </div>
+{% else %}
+<div class="reservation-header">
+    <h2>Room Reservations</h2>
+    {% if user_reservation %}
+        <div class="current-reservation">
+            <div class="reservation-info">
+                <p><strong>Your Current Reservation:</strong> Room {{ user_reservation.room.room_number }}</p>
+                {% if user_reservation.check_in and user_reservation.check_out %}
+                    <p><strong>Duration:</strong> 
+                        {{ user_reservation.check_in|date:"M d, Y" }} to {{ user_reservation.check_out|date:"M d, Y" }}
+                        {% if user_reservation.check_out|date:"Y-m-d" > "now"|date:"Y-m-d" %}
+                            ({{ user_reservation.check_out|timeuntil }} remaining)
+                        {% endif %}
+                    </p>
+                {% else %}
+                    <p><strong>Reserved on:</strong> {{ user_reservation.reserved_at|date:"M d, Y" }}</p>
+                {% endif %}
+                <p><strong>Status:</strong> <span class="badge badge-{{ user_reservation.status }}">{{ user_reservation.get_status_display }}</span></p>
+            </div>
+            <form method="post" action="{% url 'reservations:cancel_reservation' user_reservation.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this reservation?');">
+                    Cancel Reservation
+                </button>
+            </form>
+        </div>
+    {% else %}
+        <p class="subtitle">Select an available room to reserve. Click on a room to select check-in and check-out dates.</p>
+    {% endif %}
+</div>
+
+<div class="rooms-grid">
+    {% for room_data in rooms_data %}
+        <div class="room-card room-{{ room_data.color }} {% if not room_data.can_select %}disabled{% endif %}">
+            <div class="room-number">{{ room_data.room.room_number }}</div>
+            <div class="room-status">
+                {% if room_data.reservation %}
+                    {% if room_data.reservation.user == user %}
+                        <span class="badge badge-green">Your Room</span>
+                    {% else %}
+                        <span class="badge badge-yellow">Reserved</span>
+                    {% endif %}
+                {% else %}
+                    <span class="badge badge-white">Available</span>
+                {% endif %}
+            </div>
+            
+            {% if room_data.reservation %}
+                <div class="room-dates">
+                    {% if room_data.reservation.check_in and room_data.reservation.check_out %}
+                        <small>
+                            {{ room_data.reservation.check_in|date:"M d" }} - {{ room_data.reservation.check_out|date:"M d, Y" }}
+                        </small>
+                    {% endif %}
+                </div>
+            {% elif room_data.future_reservation %}
+                <div class="room-dates">
+                    {% if room_data.future_reservation.check_in and room_data.future_reservation.check_out %}
+                        <small style="color: var(--gray-600);">
+                            Reserved: {{ room_data.future_reservation.check_in|date:"M d" }} - {{ room_data.future_reservation.check_out|date:"M d, Y" }}
+                        </small>
+                    {% endif %}
+                </div>
+            {% endif %}
+            
+            {% if room_data.room.has_iot_device and room_data.room.room_number != "101" %}
+                <div class="room-iot">
+                    <span class="iot-badge">IoT Device</span>
+                </div>
+            {% endif %}
+            
+            {% if not room_data.can_select and room_data.reservation %}
+                <div class="room-user">
+                    Reserved by: {{ room_data.reservation.user.username }}
+                </div>
+            {% endif %}
+            
+            {% if not is_manager %}
+                {% if room_data.is_reserved %}
+                    <div class="room-action">
+                        {% if room_data.reservation and room_data.reservation.check_out %}
+                            <button class="btn btn-small btn-primary" disabled 
+                                    title="Room is reserved until {{ room_data.reservation.check_out|date:'M d, Y' }}">
+                                Reserve Now
+                            </button>
+                        {% else %}
+                            <button class="btn btn-small btn-primary" disabled 
+                                    title="Room is already reserved">
+                                Reserve Now
+                            </button>
+                        {% endif %}
+                    </div>
+                {% elif room_data.can_select and not user_reservation %}
+                    <div class="room-action">
+                        <a href="{% url 'reservations:reserve_room' room_data.room.room_number %}" class="btn btn-small btn-primary">
+                            Reserve Now
+                        </a>
+                    </div>
+                {% elif room_data.reservation and room_data.reservation.user == user %}
+                    <div class="room-action">
+                        <form method="post" action="{% url 'reservations:cancel_reservation' room_data.reservation.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-small btn-danger" 
+                                    onclick="return confirm('Cancel reservation for Room {{ room_data.room.room_number }}?');">
+                                Cancel
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

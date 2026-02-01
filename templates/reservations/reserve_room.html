@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Reserve Room {{ room_number }} - ECHO-Occupancy Monitor{% endblock %}
+
+{% block content %}
+<div class="reservation-form-container">
+    <div class="reservation-form-card">
+        <h2>Reserve Room {{ room_number }}</h2>
+        <form method="post" class="reservation-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="{{ form.check_in_date.id_for_label }}">Check-in Date</label>
+                {{ form.check_in_date }}
+                {% if form.check_in_date.errors %}
+                    <div class="error">{{ form.check_in_date.errors }}</div>
+                {% endif %}
+                {% if form.check_in_date.help_text %}
+                    <small class="form-help">{{ form.check_in_date.help_text }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.check_out_date.id_for_label }}">Check-out Date</label>
+                {{ form.check_out_date }}
+                {% if form.check_out_date.errors %}
+                    <div class="error">{{ form.check_out_date.errors }}</div>
+                {% endif %}
+                {% if form.check_out_date.help_text %}
+                    <small class="form-help">{{ form.check_out_date.help_text }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.notes.id_for_label }}">Notes (Optional)</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                    <div class="error">{{ form.notes.errors }}</div>
+                {% endif %}
+            </div>
+            
+            {% if form.non_field_errors %}
+                <div class="error">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Confirm Reservation</button>
+                <a href="{% url 'reservations:reservation_page' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Set minimum date for check-out based on check-in
+document.addEventListener('DOMContentLoaded', function() {
+    const checkInInput = document.getElementById('{{ form.check_in_date.id_for_label }}');
+    const checkOutInput = document.getElementById('{{ form.check_out_date.id_for_label }}');
+    
+    if (checkInInput && checkOutInput) {
+        checkInInput.addEventListener('change', function() {
+            const checkInDate = new Date(this.value);
+            if (checkInDate && !isNaN(checkInDate.getTime())) {
+                const nextDay = new Date(checkInDate);
+                nextDay.setDate(nextDay.getDate() + 1);
+                checkOutInput.min = nextDay.toISOString().split('T')[0];
+                
+                // If check-out is before or equal to check-in, update it
+                const checkOutDate = new Date(checkOutInput.value);
+                if (checkOutInput.value && (checkOutDate <= checkInDate || isNaN(checkOutDate.getTime()))) {
+                    checkOutInput.value = nextDay.toISOString().split('T')[0];
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

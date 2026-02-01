@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Room {{ room.room_number }} - ECHO-Occupancy Monitor{% endblock %}
+
+{% block content %}
+<div class="room-detail-header">
+    <h2>Room {{ room.room_number }}</h2>
+    <a href="{% url 'rooms:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+<div class="room-detail-grid">
+    <div class="detail-card">
+        <h3>Room Information</h3>
+        <div class="info-item">
+            <strong>Room Number:</strong> {{ room.room_number }}
+        </div>
+        <div class="info-item">
+            <strong>IoT Device:</strong> 
+            {% if room.has_iot_device %}
+                <span class="badge badge-green">Connected</span>
+            {% else %}
+                <span class="badge badge-gray">Not Connected</span>
+            {% endif %}
+        </div>
+        {% if room.iot_device_id %}
+            <div class="info-item">
+                <strong>Device ID:</strong> {{ room.iot_device_id }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="detail-card">
+        <h3>Current Status</h3>
+        {% if reservation %}
+            <div class="info-item">
+                <strong>Reservation Status:</strong> 
+                <span class="badge badge-{{ reservation.status }}">{{ reservation.get_status_display }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Reserved By:</strong> {{ reservation.user.username }}
+            </div>
+            <div class="info-item">
+                <strong>Reserved At:</strong> {{ reservation.reserved_at|date:"Y-m-d H:i" }}
+            </div>
+        {% else %}
+            <div class="info-item">
+                <strong>Reservation Status:</strong> 
+                <span class="badge badge-white">Available</span>
+            </div>
+        {% endif %}
+        
+        {% if status.occupancy_data %}
+            <div class="info-item">
+                <strong>Occupancy Status:</strong> 
+                {% if status.is_occupied %}
+                    <span class="badge badge-yellow">Occupied</span>
+                {% else %}
+                    <span class="badge badge-white">Vacant</span>
+                {% endif %}
+            </div>
+            <div class="info-item">
+                <strong>Last Update:</strong> 
+                {% if status.occupancy_data.timestamp %}
+                    {{ status.occupancy_data.timestamp }}
+                {% else %}
+                    Real-time
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if status.occupancy_data and status.occupancy_data.sensor_data %}
+    <div class="detail-card">
+        <h3>IoT Sensor Data</h3>
+        <div class="sensor-data">
+            {% for key, value in status.occupancy_data.sensor_data.items %}
+                <div class="sensor-item"><strong>{{ key }}:</strong> {{ value }}</div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+{% if occupancy_history %}
+    <div class="detail-card">
+        <h3>Occupancy History</h3>
+        <div class="history-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in occupancy_history %}
+                        <tr>
+                            <td>{{ record.timestamp|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                {% if record.is_occupied %}
+                                    <span class="badge badge-yellow">Occupied</span>
+                                {% else %}
+                                    <span class="badge badge-white">Vacant</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
